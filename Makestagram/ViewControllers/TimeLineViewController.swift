@@ -7,8 +7,9 @@
 //
 
 import UIKit
-
+import Parse
 class TimeLineViewController: UIViewController {
+    var photoTakingHelper: PhotoTakingHelper?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,7 +23,21 @@ class TimeLineViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-    
+    func takePhoto() {
+        photoTakingHelper = PhotoTakingHelper(viewController: self.tabBarController!) {
+            (image: UIImage?) in
+            if let image = image {
+                print("received a callback")
+                let file = PFFile(name: "image.jpg", data: UIImageJPEGRepresentation(image, 1.0)!)!
+                
+                let objectPost = PFObject(className: "Post")
+                objectPost["ImageFile"] = file
+                objectPost.saveInBackground()
+                
+            }
+            
+        }
+    }
 
     /*
     // MARK: - Navigation
@@ -33,5 +48,17 @@ class TimeLineViewController: UIViewController {
         // Pass the selected object to the new view controller.
     }
     */
+    
 
+}
+extension TimeLineViewController: UITabBarControllerDelegate {
+    func tabBarController(tabBarController: UITabBarController, shouldSelectViewController viewController: UIViewController) -> Bool {
+        if (viewController is PhotoViewController) {
+            takePhoto()
+            return false
+        } else {
+            return true
+        }
+    }
+    
 }
