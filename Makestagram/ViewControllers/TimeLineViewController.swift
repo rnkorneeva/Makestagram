@@ -9,11 +9,40 @@
 import UIKit
 import Parse
 class TimeLineViewController: UIViewController {
+    
+    
+    @IBOutlet weak var tableView: UITableView!
+    var posts: [Post] = []
+    
     var photoTakingHelper: PhotoTakingHelper?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        
+        let followingQuery = PFQuery(className: "Follow")
+        followingQuery.whereKey("fromUser", equalTo:PFUser.currentUser()!)
+        
+        let postsFromFollowedUsers = Post.query()
+         postsFromFollowedUsers!.whereKey("user", matchesKey: "toUser", inQuery: followingQuery)
+        
+        let postsFromThisUser = Post.query()
+        postsFromThisUser!.whereKey("user", equalTo: PFUser.currentUser()!)
+        
+        let query = PFQuery.orQueryWithSubqueries([postsFromFollowedUsers!, postsFromThisUser!])
+        
+        query.includeKey("user")
+        
+        query.orderByDescending("createdAt")
+        
+        query.findObjectsInBackgroundWithBlock {(result: [PFObject]?, error: NSError?) -> Void in
+            // 8
+            self.posts = result as? [Post] ?? []
+            // 9
+            self.tableView.reloadData()
+        }
+        
+        
         // important
         self.tabBarController?.delegate = self
         // Do any additional setup after loading the view.
@@ -24,14 +53,25 @@ class TimeLineViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     func takePhoto() {
-        photoTakingHelper = PhotoTakingHelper(viewController: self.tabBarController!) {
-            (image: UIImage?) in
+        // instantiate photo taking class, provide callback for when photo is selected
+        photoTakingHelper = PhotoTakingHelper(viewController: self.tabBarController!) { (image: UIImage?) in
             let post = Post()
             post.image = image
             post.uploadPost()
-            
         }
     }
+    /*func takePhoto() {
+        photoTakingHelper = PhotoTakingHelper(viewController: self.tabBarController!, callback: { (image: UIImage?) in
+            if let image = image {
+                let imageData = UIImageJPEGRepresentation(image, 0.8)!
+                let imageFile = PFFile(name: "image.jpg", data: imageData)!
+                
+                let post = PFObject(className: "Post")
+                post["imageFile"] = imageFile
+                post.saveInBackground()
+            }
+        })
+    }*/
 
     /*
     // MARK: - Navigation
@@ -55,4 +95,21 @@ extension TimeLineViewController: UITabBarControllerDelegate {
         }
     }
     
+}
+
+extension TimeLineViewController: UITableViewDataSource {
+    
+    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        // 1
+        return posts.count
+    }
+    
+    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
+        // 2
+        let cell = tableView.dequeueReusableCellWithIdentifier("PostCell")!
+        
+        cell.textLabel!.text = "Post"
+        
+        return cell
+    }
 }
