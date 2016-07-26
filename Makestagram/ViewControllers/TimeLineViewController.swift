@@ -16,41 +16,16 @@ class TimeLineViewController: UIViewController {
     
     var photoTakingHelper: PhotoTakingHelper?
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
         
-        
-        let followingQuery = PFQuery(className: "Follow")
-        followingQuery.whereKey("fromUser", equalTo:PFUser.currentUser()!)
-        
-        let postsFromFollowedUsers = Post.query()
-         postsFromFollowedUsers!.whereKey("user", matchesKey: "toUser", inQuery: followingQuery)
-        
-        let postsFromThisUser = Post.query()
-        postsFromThisUser!.whereKey("user", equalTo: PFUser.currentUser()!)
-        
-        let query = PFQuery.orQueryWithSubqueries([postsFromFollowedUsers!, postsFromThisUser!])
-        
-        query.includeKey("user")
-        
-        query.orderByDescending("createdAt")
-        
-        /* query.findObjectsInBackgroundWithBlock {(result: [PFObject]?, error: NSError?) -> Void in
-            // 8
-            self.posts = result as? [Post] ?? []
-            // 9
-            self.tableView.reloadData()
-        }*/
-        //
-        query.findObjectsInBackgroundWithBlock {(result: [PFObject]?, error: NSError?) -> Void in
+        ParseHelper.timelineRequestForCurrentUser {
+            (result: [PFObject]?, error: NSError?) -> Void in
             self.posts = result as? [Post] ?? []
             
-            // 1
             for post in self.posts {
                 do {
-                    // 2
                     let data = try post.imageFile?.getData()
-                    // 3
                     post.image = UIImage(data: data!, scale:1.0)
                 } catch {
                     print("could not get image")
@@ -59,12 +34,8 @@ class TimeLineViewController: UIViewController {
             
             self.tableView.reloadData()
         }
-        
-        // important
-        self.tabBarController?.delegate = self
-        // Do any additional setup after loading the view.
     }
-
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
